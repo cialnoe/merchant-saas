@@ -6,16 +6,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Tetapkan nilai kurs Anda di sini (misal: 1 USD = 16000 IDR)
+const EXCHANGE_RATE = 16000; 
+
 export function formatCurrency(amount: number, locale: Locale = "en"): string {
   const { currency, intlLocale } = localeMeta[locale];
   
+  // Jika bahasa Indonesia, kalikan dengan kurs sebelum diformat
+  let finalAmount = amount;
+  if (locale === "id" && currency === "IDR") {
+    finalAmount = amount * EXCHANGE_RATE;
+  }
+
   return new Intl.NumberFormat(intlLocale, {
     style: "currency",
     currency,
-    // Rupiah tidak menggunakan angka desimal di belakang koma untuk kemudahan membaca
+    // Rupiah tidak menggunakan angka di belakang koma (desimal)
     maximumFractionDigits: currency === "IDR" ? 0 : 2,
     minimumFractionDigits: currency === "IDR" ? 0 : 2,
-  }).format(amount);
+  }).format(finalAmount);
 }
 
 export function formatDate(dateString: string, locale: Locale = "en"): string {
