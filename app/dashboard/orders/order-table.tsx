@@ -38,9 +38,12 @@ import { OrderDialog } from "./order-dialog";
 import { updateOrderStatus, deleteOrder } from "@/actions/orders";
 import { useToast } from "@/components/ui/toast";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { interpolate, type Dictionary } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/config";
 import { MoreHorizontal, Plus, Search, Trash2, Loader2 } from "lucide-react";
 import type { Order, OrderStatus, Product } from "@/types/database.types";
 
+// Canonical DB values stay in English; only the on-screen label is translated.
 const STATUS_OPTIONS: OrderStatus[] = ["Pending", "Processing", "Completed"];
 
 function statusVariant(status: OrderStatus) {
@@ -52,9 +55,13 @@ function statusVariant(status: OrderStatus) {
 export function OrderTable({
   initialOrders,
   products,
+  locale,
+  dict,
 }: {
   initialOrders: Order[];
   products: Product[];
+  locale: Locale;
+  dict: Dictionary;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -64,6 +71,13 @@ export function OrderTable({
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const t = dict.orders;
+
+  const statusLabel: Record<OrderStatus, string> = {
+    Pending: t.statusPending,
+    Processing: t.statusProcessing,
+    Completed: t.statusCompleted,
+  };
 
   const filtered = useMemo(() => {
     return initialOrders.filter((order) => {
@@ -85,9 +99,9 @@ export function OrderTable({
     startTransition(async () => {
       const result = await updateOrderStatus(order.id, status);
       if (result.error) {
-        toast({ title: "Failed to update status", description: result.error, variant: "destructive" });
+        toast({ title: t.toastStatusFailed, description: result.error, variant: "destructive" });
       } else {
-        toast({ title: `Order marked as ${status}`, variant: "success" });
+        toast({ title: interpolate(t.statusUpdated, { status: statusLabel[status] }), variant: "success" });
         router.refresh();
       }
       setUpdatingId(null);
@@ -99,9 +113,9 @@ export function OrderTable({
     startTransition(async () => {
       const result = await deleteOrder(deleteTarget.id);
       if (result.error) {
-        toast({ title: "Failed to delete", description: result.error, variant: "destructive" });
+        toast({ title: t.toastDeleteFailed, description: result.error, variant: "destructive" });
       } else {
-        toast({ title: "Order deleted", variant: "success" });
+        toast({ title: t.toastDeleted, variant: "success" });
         router.refresh();
       }
       setDeleteTarget(null);
@@ -115,7 +129,7 @@ export function OrderTable({
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by customer or product..."
+              placeholder={t.searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -123,13 +137,13 @@ export function OrderTable({
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-44">
-              <SelectValue placeholder="Filter status" />
+              <SelectValue placeholder={t.allStatuses} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="all">{t.allStatuses}</SelectItem>
               {STATUS_OPTIONS.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {s}
+                  {statusLabel[s]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -137,7 +151,7 @@ export function OrderTable({
         </div>
         <Button onClick={() => setDialogOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" />
-          New order
+          {t.newOrder}
         </Button>
       </div>
 
@@ -145,12 +159,12 @@ export function OrderTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Qty</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t.colCustomer}</TableHead>
+              <TableHead>{t.colProduct}</TableHead>
+              <TableHead>{t.colQty}</TableHead>
+              <TableHead>{t.colTotal}</TableHead>
+              <TableHead>{t.colDate}</TableHead>
+              <TableHead>{t.colStatus}</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -158,9 +172,7 @@ export function OrderTable({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  {initialOrders.length === 0
-                    ? "No orders yet. Create your first order to get started."
-                    : "No orders match your filters."}
+                  {initialOrders.length === 0 ? t.emptyNoOrders : t.emptyNoMatch}
                 </TableCell>
               </TableRow>
             ) : (
@@ -169,9 +181,9 @@ export function OrderTable({
                   <TableCell className="font-medium">{order.customer_name}</TableCell>
                   <TableCell className="text-muted-foreground">{order.product_name}</TableCell>
                   <TableCell>{order.quantity}</TableCell>
-                  <TableCell>{formatCurrency(Number(order.total_amount))}</TableCell>
+                  <TableCell>{formatCurrency(Number(order.total_amount), locale)}</TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
-                    {formatDate(order.created_at)}
+                    {formatDate(order.created_at, locale)}
                   </TableCell>
                   <TableCell>
                     <Select
@@ -185,7 +197,7 @@ export function OrderTable({
                             {updatingId === order.id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : (
-                              order.status
+                              statusLabel[order.status]
                             )}
                           </Badge>
                         </SelectValue>
@@ -193,7 +205,7 @@ export function OrderTable({
                       <SelectContent>
                         {STATUS_OPTIONS.map((s) => (
                           <SelectItem key={s} value={s}>
-                            {s}
+                            {statusLabel[s]}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -211,7 +223,7 @@ export function OrderTable({
                           onClick={() => setDeleteTarget(order)}
                           className="gap-2 text-destructive focus:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4" /> Delete
+                          <Trash2 className="h-4 w-4" /> {dict.common.delete}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -228,24 +240,25 @@ export function OrderTable({
         onOpenChange={setDialogOpen}
         products={products}
         onSuccess={handleSuccess}
+        locale={locale}
+        dict={dict}
       />
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete order</DialogTitle>
+            <DialogTitle>{t.deleteTitle}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this order for &quot;{deleteTarget?.customer_name}&quot;?
-              This action cannot be undone.
+              {interpolate(t.deleteDesc, { name: deleteTarget?.customer_name ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isPending}>
-              Cancel
+              {dict.common.cancel}
             </Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={isPending} className="gap-2">
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Delete
+              {dict.common.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

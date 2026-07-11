@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 export default async function DashboardLayout({
   children,
@@ -16,9 +17,11 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const { locale, t } = getDictionary();
+
   return (
     <div className="flex min-h-screen">
-      <SidebarNav email={user.email ?? ""} />
+      <SidebarNav email={user.email ?? ""} locale={locale} dict={t} />
       <div className="flex min-h-screen flex-1 flex-col">
         <main className="flex-1 bg-secondary/20 p-4 sm:p-6 lg:p-8">
           {children}

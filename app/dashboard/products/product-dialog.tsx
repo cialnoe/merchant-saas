@@ -17,6 +17,7 @@ import { Loader2 } from "lucide-react";
 import { createProduct, updateProduct, type ProductFormState } from "@/actions/products";
 import { useToast } from "@/components/ui/toast";
 import type { Product } from "@/types/database.types";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 const initialState: ProductFormState = { error: null, success: false };
 
@@ -35,6 +36,7 @@ interface ProductDialogProps {
   onOpenChange: (open: boolean) => void;
   product?: Product | null;
   onSuccess: () => void;
+  dict: Dictionary;
 }
 
 export function ProductDialog({
@@ -42,6 +44,7 @@ export function ProductDialog({
   onOpenChange,
   product,
   onSuccess,
+  dict,
 }: ProductDialogProps) {
   const isEditing = Boolean(product);
   const boundAction = isEditing
@@ -51,12 +54,13 @@ export function ProductDialog({
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const prevSuccess = useRef(false);
+  const t = dict.products;
 
   useEffect(() => {
     if (state.success && !prevSuccess.current) {
       prevSuccess.current = true;
       toast({
-        title: isEditing ? "Product updated" : "Product created",
+        title: isEditing ? t.toastUpdated : t.toastCreated,
         variant: "success",
       });
       formRef.current?.reset();
@@ -66,22 +70,20 @@ export function ProductDialog({
     if (!state.success) {
       prevSuccess.current = false;
     }
-  }, [state.success, isEditing, onSuccess, onOpenChange, toast]);
+  }, [state.success, isEditing, onSuccess, onOpenChange, toast, t]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit product" : "New product"}</DialogTitle>
+          <DialogTitle>{isEditing ? t.dialogEditTitle : t.dialogNewTitle}</DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Update the details for this product."
-              : "Add a new product to your catalog."}
+            {isEditing ? t.dialogEditDesc : t.dialogNewDesc}
           </DialogDescription>
         </DialogHeader>
         <form ref={formRef} action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Product name</Label>
+            <Label htmlFor="name">{t.fieldName}</Label>
             <Input
               id="name"
               name="name"
@@ -91,7 +93,7 @@ export function ProductDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sku">SKU</Label>
+            <Label htmlFor="sku">{t.fieldSku}</Label>
             <Input
               id="sku"
               name="sku"
@@ -102,7 +104,7 @@ export function ProductDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Price (USD)</Label>
+              <Label htmlFor="price">{t.fieldPrice}</Label>
               <Input
                 id="price"
                 name="price"
@@ -115,7 +117,7 @@ export function ProductDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="stock">Stock</Label>
+              <Label htmlFor="stock">{t.fieldStock}</Label>
               <Input
                 id="stock"
                 name="stock"
@@ -136,9 +138,9 @@ export function ProductDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {dict.common.cancel}
             </Button>
-            <SubmitButton label={isEditing ? "Save changes" : "Create product"} />
+            <SubmitButton label={isEditing ? dict.common.saveChanges : t.createButton} />
           </DialogFooter>
         </form>
       </DialogContent>

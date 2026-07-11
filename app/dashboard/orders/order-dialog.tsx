@@ -24,16 +24,18 @@ import { Loader2 } from "lucide-react";
 import { createOrder, type OrderFormState } from "@/actions/orders";
 import { useToast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/utils";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/config";
 import type { Product } from "@/types/database.types";
 
 const initialState: OrderFormState = { error: null, success: false };
 
-function SubmitButton() {
+function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} className="gap-2">
       {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-      Create order
+      {label}
     </Button>
   );
 }
@@ -43,21 +45,31 @@ interface OrderDialogProps {
   onOpenChange: (open: boolean) => void;
   products: Product[];
   onSuccess: () => void;
+  locale: Locale;
+  dict: Dictionary;
 }
 
-export function OrderDialog({ open, onOpenChange, products, onSuccess }: OrderDialogProps) {
+export function OrderDialog({
+  open,
+  onOpenChange,
+  products,
+  onSuccess,
+  locale,
+  dict,
+}: OrderDialogProps) {
   const [state, formAction] = useFormState(createOrder, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const prevSuccess = useRef(false);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const t = dict.orders;
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
   useEffect(() => {
     if (state.success && !prevSuccess.current) {
       prevSuccess.current = true;
-      toast({ title: "Order created", variant: "success" });
+      toast({ title: t.toastCreated, variant: "success" });
       formRef.current?.reset();
       setSelectedProductId("");
       onSuccess();
@@ -66,7 +78,7 @@ export function OrderDialog({ open, onOpenChange, products, onSuccess }: OrderDi
     if (!state.success) {
       prevSuccess.current = false;
     }
-  }, [state.success, onSuccess, onOpenChange, toast]);
+  }, [state.success, onSuccess, onOpenChange, toast, t]);
 
   const availableProducts = products.filter((p) => p.stock > 0);
 
@@ -74,14 +86,12 @@ export function OrderDialog({ open, onOpenChange, products, onSuccess }: OrderDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New order</DialogTitle>
-          <DialogDescription>
-            Create an order for one of your products. Stock will be reduced automatically.
-          </DialogDescription>
+          <DialogTitle>{t.dialogTitle}</DialogTitle>
+          <DialogDescription>{t.dialogDesc}</DialogDescription>
         </DialogHeader>
         <form ref={formRef} action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="customer_name">Customer name</Label>
+            <Label htmlFor="customer_name">{t.fieldCustomer}</Label>
             <Input
               id="customer_name"
               name="customer_name"
@@ -90,24 +100,24 @@ export function OrderDialog({ open, onOpenChange, products, onSuccess }: OrderDi
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="product_id">Product</Label>
+            <Label htmlFor="product_id">{t.fieldProduct}</Label>
             <Select
               value={selectedProductId}
               onValueChange={setSelectedProductId}
               required
             >
               <SelectTrigger id="product_id">
-                <SelectValue placeholder="Select a product" />
+                <SelectValue placeholder={t.fieldProductPlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 {availableProducts.length === 0 ? (
                   <div className="px-2 py-3 text-sm text-muted-foreground">
-                    No products in stock
+                    {t.noProductsInStock}
                   </div>
                 ) : (
                   availableProducts.map((product) => (
                     <SelectItem key={product.id} value={product.id}>
-                      {product.name} — {formatCurrency(Number(product.price))} ({product.stock} in stock)
+                      {product.name} — {formatCurrency(Number(product.price), locale)} ({product.stock})
                     </SelectItem>
                   ))
                 )}
@@ -117,7 +127,7 @@ export function OrderDialog({ open, onOpenChange, products, onSuccess }: OrderDi
             <input type="hidden" name="product_id" value={selectedProductId} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity</Label>
+            <Label htmlFor="quantity">{t.fieldQuantity}</Label>
             <Input
               id="quantity"
               name="quantity"
@@ -137,9 +147,9 @@ export function OrderDialog({ open, onOpenChange, products, onSuccess }: OrderDi
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {dict.common.cancel}
             </Button>
-            <SubmitButton />
+            <SubmitButton label={t.createButton} />
           </DialogFooter>
         </form>
       </DialogContent>

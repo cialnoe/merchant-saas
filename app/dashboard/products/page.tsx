@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProductTable } from "./product-table";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 import type { Product } from "@/types/database.types";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,7 @@ export default async function ProductsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const { locale, t } = getDictionary();
 
   const { data: products } = await supabase
     .from("products")
@@ -20,13 +22,15 @@ export default async function ProductsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Products
+          {t.products.title}
         </h1>
-        <p className="text-muted-foreground">
-          Manage your product catalog, pricing, and stock levels.
-        </p>
+        <p className="text-muted-foreground">{t.products.subtitle}</p>
       </div>
-      <ProductTable initialProducts={(products ?? []) as Product[]} />
+      <ProductTable
+        initialProducts={(products ?? []) as Product[]}
+        locale={locale}
+        dict={t}
+      />
     </div>
   );
 }

@@ -236,6 +236,9 @@ Every `git push` to `main` triggers an automatic Vercel deployment. For preview 
 ## 7. What's Implemented vs. What You Might Add Next
 
 **Implemented (per spec):**
+- **Language switcher (English / Bahasa Indonesia)** — available on the landing page, login, register, and inside the dashboard sidebar. The choice is stored in a `NEXT_LOCALE` cookie (`lib/i18n/config.ts`, `lib/i18n/dictionaries.ts`, `actions/locale.ts`) and read by Server Components via `getDictionary()`, so translated pages render correctly on the very first load — no flash of the wrong language.
+- **Currency follows the language automatically**: English shows prices in **USD ($)**, Indonesian shows prices in **IDR (Rp)**, formatted with `Intl.NumberFormat` via `formatCurrency(amount, locale)` in `lib/utils.ts`. Dates are similarly formatted per-locale with `formatDate()`.
+- Order/product status values (`Pending`, `Processing`, `Completed`) are stored in English in the database (so your data and RLS policies stay stable), but are translated for display only — see the `statusLabel` maps in `order-table.tsx` / `dashboard/page.tsx`.
 - Landing page with hero, features, CTA
 - Email/password auth (login, register, logout, email-confirmation callback)
 - Protected `/dashboard/*` routes via middleware

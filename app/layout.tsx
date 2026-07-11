@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
+import { getLocale } from "@/lib/i18n/get-dictionary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,8 +17,10 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = getLocale();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className={inter.className}>
         <ToastProvider>{children}</ToastProvider>
       </body>

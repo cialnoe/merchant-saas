@@ -31,10 +31,20 @@ import { ProductDialog } from "./product-dialog";
 import { deleteProduct } from "@/actions/products";
 import { useToast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/utils";
+import { interpolate, type Dictionary } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/config";
 import { MoreHorizontal, Plus, Search, Pencil, Trash2, Loader2 } from "lucide-react";
 import type { Product } from "@/types/database.types";
 
-export function ProductTable({ initialProducts }: { initialProducts: Product[] }) {
+export function ProductTable({
+  initialProducts,
+  locale,
+  dict,
+}: {
+  initialProducts: Product[];
+  locale: Locale;
+  dict: Dictionary;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -42,6 +52,7 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [isPending, startTransition] = useTransition();
+  const t = dict.products;
 
   const filtered = useMemo(() => {
     if (!search.trim()) return initialProducts;
@@ -70,9 +81,9 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
     startTransition(async () => {
       const result = await deleteProduct(deleteTarget.id);
       if (result.error) {
-        toast({ title: "Failed to delete", description: result.error, variant: "destructive" });
+        toast({ title: t.toastDeleteFailed, description: result.error, variant: "destructive" });
       } else {
-        toast({ title: "Product deleted", variant: "success" });
+        toast({ title: t.toastDeleted, variant: "success" });
         router.refresh();
       }
       setDeleteTarget(null);
@@ -85,7 +96,7 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name or SKU..."
+            placeholder={t.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -93,7 +104,7 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
         </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="h-4 w-4" />
-          Add product
+          {t.addProduct}
         </Button>
       </div>
 
@@ -101,10 +112,10 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
+              <TableHead>{t.colName}</TableHead>
+              <TableHead>{t.colSku}</TableHead>
+              <TableHead>{t.colPrice}</TableHead>
+              <TableHead>{t.colStock}</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -112,9 +123,7 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                  {initialProducts.length === 0
-                    ? "No products yet. Add your first product to get started."
-                    : "No products match your search."}
+                  {initialProducts.length === 0 ? t.emptyNoProducts : t.emptyNoMatch}
                 </TableCell>
               </TableRow>
             ) : (
@@ -122,14 +131,18 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell className="text-muted-foreground">{product.sku}</TableCell>
-                  <TableCell>{formatCurrency(Number(product.price))}</TableCell>
+                  <TableCell>{formatCurrency(Number(product.price), locale)}</TableCell>
                   <TableCell>
                     {product.stock === 0 ? (
-                      <Badge variant="destructive">Out of stock</Badge>
+                      <Badge variant="destructive">{t.outOfStock}</Badge>
                     ) : product.stock < 10 ? (
-                      <Badge variant="warning">{product.stock} left</Badge>
+                      <Badge variant="warning">
+                        {product.stock} {t.leftSuffix}
+                      </Badge>
                     ) : (
-                      <Badge variant="secondary">{product.stock} in stock</Badge>
+                      <Badge variant="secondary">
+                        {product.stock} {t.inStock}
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell>
@@ -141,13 +154,13 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleEdit(product)} className="gap-2">
-                          <Pencil className="h-4 w-4" /> Edit
+                          <Pencil className="h-4 w-4" /> {dict.common.edit}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setDeleteTarget(product)}
                           className="gap-2 text-destructive focus:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4" /> Delete
+                          <Trash2 className="h-4 w-4" /> {dict.common.delete}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -164,24 +177,24 @@ export function ProductTable({ initialProducts }: { initialProducts: Product[] }
         onOpenChange={setDialogOpen}
         product={editingProduct}
         onSuccess={handleSuccess}
+        dict={dict}
       />
 
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete product</DialogTitle>
+            <DialogTitle>{t.deleteTitle}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This
-              action cannot be undone.
+              {interpolate(t.deleteDesc, { name: deleteTarget?.name ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isPending}>
-              Cancel
+              {dict.common.cancel}
             </Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={isPending} className="gap-2">
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Delete
+              {dict.common.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

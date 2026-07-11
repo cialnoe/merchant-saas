@@ -41,7 +41,7 @@ export async function createOrder(
 
   const { data: product, error: productError } = await supabase
     .from("products")
-    .select("*")
+    .select("id, name, price, stock")
     .eq("id", parsed.data.product_id)
     .eq("user_id", user.id)
     .single();

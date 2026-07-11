@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { useClientDictionary } from "@/lib/i18n/use-client-locale";
 
 export default function OrdersError({
   error,
@@ -11,6 +12,8 @@ export default function OrdersError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useClientDictionary();
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -19,12 +22,10 @@ export default function OrdersError({
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
       <AlertTriangle className="h-10 w-10 text-destructive" />
       <div>
-        <h2 className="text-xl font-semibold">Couldn&apos;t load orders</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Something went wrong while fetching your orders.
-        </p>
+        <h2 className="text-xl font-semibold">{t.orders.loadErrorTitle}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t.orders.loadErrorDesc}</p>
       </div>
-      <Button onClick={() => reset()}>Try again</Button>
+      <Button onClick={() => reset()}>{t.common.tryAgain}</Button>
     </div>
   );
 }
