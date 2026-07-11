@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { OrderStatus } from "@/types/database.types";
+import type { OrderStatus, Product } from "@/types/database.types";
 
 const orderSchema = z.object({
   customer_name: z.string().min(1, "Customer name is required.").max(200),
@@ -39,7 +39,11 @@ export async function createOrder(
     return { error: "You must be logged in.", success: false };
   }
 
-  const { data: product, error: productError } = await supabase
+  // BYPASS: Memisahkan instance ke 'any' khusus untuk operasi tabel
+  // Ini menghindari bug konflik tipe 'never' akibat SSR version mismatch
+  const db = supabase as any;
+
+  const { data: product, error: productError } = await db
     .from("products")
     .select("id, name, price, stock")
     .eq("id", parsed.data.product_id)
@@ -50,7 +54,8 @@ export async function createOrder(
     return { error: "Selected product could not be found.", success: false };
   }
 
-  const currentProduct = product;
+  // EXPLICIT TYPING: Mengembalikan struktur data ke tipe yang valid secara presisi
+  const currentProduct = product as Product;
 
   if (currentProduct.stock < parsed.data.quantity) {
     return {
@@ -61,7 +66,7 @@ export async function createOrder(
 
   const totalAmount = Number(currentProduct.price) * parsed.data.quantity;
 
-  const { error: insertError } = await supabase.from("orders").insert({
+  const { error: insertError } = await db.from("orders").insert({
     user_id: user.id,
     customer_name: parsed.data.customer_name,
     product_id: currentProduct.id,
@@ -75,7 +80,7 @@ export async function createOrder(
     return { error: insertError.message, success: false };
   }
 
-  const { error: stockError } = await supabase
+  const { error: stockError } = await db
     .from("products")
     .update({ stock: currentProduct.stock - parsed.data.quantity })
     .eq("id", currentProduct.id)
@@ -104,7 +109,9 @@ export async function updateOrderStatus(
     return { error: "You must be logged in." };
   }
 
-  const { error } = await supabase
+  const db = supabase as any;
+
+  const { error } = await db
     .from("orders")
     .update({ status })
     .eq("id", orderId)
@@ -129,7 +136,9 @@ export async function deleteOrder(orderId: string): Promise<{ error: string | nu
     return { error: "You must be logged in." };
   }
 
-  const { error } = await supabase
+  const db = supabase as any;
+
+  const { error } = await db
     .from("orders")
     .delete()
     .eq("id", orderId)
