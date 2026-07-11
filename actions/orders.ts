@@ -50,12 +50,15 @@ export async function createOrder(
     return { error: "Selected product could not be found.", success: false };
   }
 
-  if (product.stock < parsed.data.quantity) {
-    return {
-      error: `Not enough stock. Only ${product.stock} unit(s) available.`,
-      success: false,
-    };
+  // Definisikan ulang sebagai 'any' sebelum pengecekan
+const currentProduct = product as any;
+
+if (currentProduct.stock < parsed.data.quantity) {
+  return {
+    error: `Not enough stock. Only ${currentProduct.stock} unit(s) available.`,
+    success: false,
   }
+}
 
   const totalAmount = Number(product.price) * parsed.data.quantity;
 
