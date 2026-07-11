@@ -44,13 +44,21 @@ export function ProductDialog({
   onOpenChange,
   product,
   onSuccess,
-  _dict,
+  dict,
 }: ProductDialogProps) {
   const isEditing = Boolean(product);
-  const boundAction = isEditing
-    ? updateProduct.bind(null, product!.id)
-    : createProduct;
-  const [state, formAction] = useFormState(boundAction, initialState);
+  
+  // Resolusi TypeScript: Menggunakan wrapper function statis
+  // untuk menghindari error union type dari .bind() pada useFormState
+  const action = async (prevState: ProductFormState, formData: FormData) => {
+    if (isEditing && product?.id) {
+      return updateProduct(product.id, prevState, formData);
+    }
+    return createProduct(prevState, formData);
+  };
+
+  const [state, formAction] = useFormState(action, initialState);
+  
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const prevSuccess = useRef(false);

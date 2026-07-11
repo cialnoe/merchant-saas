@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,7 +40,9 @@ export async function createProduct(
     return { error: "You must be logged in.", success: false };
   }
 
-  const { error } = await supabase.from("products").insert({
+  const db = supabase as any;
+
+  const { error } = await db.from("products").insert({
     user_id: user.id,
     name: parsed.data.name,
     sku: parsed.data.sku,
@@ -84,7 +87,9 @@ export async function updateProduct(
     return { error: "You must be logged in.", success: false };
   }
 
-  const { error } = await supabase
+  const db = supabase as any;
+
+  const { error } = await db
     .from("products")
     .update({
       name: parsed.data.name,
@@ -117,7 +122,9 @@ export async function deleteProduct(productId: string): Promise<{ error: string 
     return { error: "You must be logged in." };
   }
 
-  const { error } = await supabase
+  const db = supabase as any;
+
+  const { error } = await db
     .from("products")
     .delete()
     .eq("id", productId)

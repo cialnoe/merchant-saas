@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderStatus, Product } from "@/types/database.types";
@@ -38,8 +39,6 @@ export async function createOrder(
     return { error: "You must be logged in.", success: false };
   }
 
-  // BYPASS: Memisahkan instance ke 'any' khusus untuk operasi tabel
-  // Ini menghindari bug konflik tipe 'never' akibat SSR version mismatch
   const db = supabase as any;
 
   const { data: product, error: productError } = await db
@@ -53,7 +52,6 @@ export async function createOrder(
     return { error: "Selected product could not be found.", success: false };
   }
 
-  // EXPLICIT TYPING: Mengembalikan struktur data ke tipe yang valid secara presisi
   const currentProduct = product as Product;
 
   if (currentProduct.stock < parsed.data.quantity) {
