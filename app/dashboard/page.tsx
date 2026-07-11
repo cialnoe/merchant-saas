@@ -28,27 +28,31 @@ export default async function DashboardOverviewPage() {
     Completed: t.orders.statusCompleted,
   };
 
+  // BYPASS: Gunakan instance "any" khusus untuk operasi tabel
+  // Ini menghindari bug konflik tipe 'never' akibat SSR version mismatch
+  const db = supabase as any;
+
   const [
     { count: totalProducts },
     { count: activeOrders },
     { data: completedOrders },
     { data: recentOrders },
   ] = await Promise.all([
-    supabase
+    db
       .from("products")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user!.id),
-    supabase
+    db
       .from("orders")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user!.id)
       .in("status", ["Pending", "Processing"]),
-    supabase
+    db
       .from("orders")
       .select("total_amount")
       .eq("user_id", user!.id)
       .eq("status", "Completed"),
-    supabase
+    db
       .from("orders")
       .select("*")
       .eq("user_id", user!.id)
@@ -56,7 +60,9 @@ export default async function DashboardOverviewPage() {
       .limit(5),
   ]);
 
-  const revenue = (completedOrders ?? []).reduce(
+  // EXPLICIT CASTING: Berikan tipe data manual setelah bypass
+  const revenueData = (completedOrders ?? []) as Array<{ total_amount: string | number }>;
+  const revenue = revenueData.reduce(
     (sum, o) => sum + Number(o.total_amount),
     0
   );
