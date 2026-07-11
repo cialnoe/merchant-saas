@@ -50,7 +50,6 @@ export async function createOrder(
     return { error: "Selected product could not be found.", success: false };
   }
 
-  // Bypass TypeScript "never" error untuk Vercel Deployment
   const currentProduct = product as any;
 
   if (currentProduct.stock < parsed.data.quantity) {
@@ -62,6 +61,7 @@ export async function createOrder(
 
   const totalAmount = Number(currentProduct.price) * parsed.data.quantity;
 
+  // Bypass error "never" pada fungsi insert
   const { error: insertError } = await supabase.from("orders").insert({
     user_id: user.id,
     customer_name: parsed.data.customer_name,
@@ -70,15 +70,16 @@ export async function createOrder(
     quantity: parsed.data.quantity,
     total_amount: totalAmount,
     status: "Pending",
-  });
+  } as any);
 
   if (insertError) {
     return { error: insertError.message, success: false };
   }
 
+  // Bypass error "never" pada fungsi update
   const { error: stockError } = await supabase
     .from("products")
-    .update({ stock: currentProduct.stock - parsed.data.quantity })
+    .update({ stock: currentProduct.stock - parsed.data.quantity } as any)
     .eq("id", currentProduct.id)
     .eq("user_id", user.id);
 
@@ -105,9 +106,10 @@ export async function updateOrderStatus(
     return { error: "You must be logged in." };
   }
 
+  // Bypass error "never" pada fungsi update status
   const { error } = await supabase
     .from("orders")
-    .update({ status })
+    .update({ status } as any)
     .eq("id", orderId)
     .eq("user_id", user.id);
 
