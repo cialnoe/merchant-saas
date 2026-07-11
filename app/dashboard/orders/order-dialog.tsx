@@ -57,7 +57,15 @@ export function OrderDialog({
   locale,
   dict,
 }: OrderDialogProps) {
-  const [state, formAction] = useFormState(createOrder, initialState);
+  
+  // Resolusi TypeScript: Wrapper fungsi statis untuk mencegah 
+  // ketidakcocokan tipe antara Server Action dan useFormState
+  const action = async (prevState: OrderFormState, formData: FormData) => {
+    return createOrder(prevState, formData);
+  };
+
+  const [state, formAction] = useFormState(action, initialState);
+  
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const prevSuccess = useRef(false);
@@ -117,7 +125,7 @@ export function OrderDialog({
                 ) : (
                   availableProducts.map((product) => (
                     <SelectItem key={product.id} value={product.id}>
-                      {product.name} — {formatCurrency(Number(product.price), locale)} ({product.stock})
+                      {product.name} &mdash; {formatCurrency(Number(product.price), locale)} ({product.stock})
                     </SelectItem>
                   ))
                 )}
