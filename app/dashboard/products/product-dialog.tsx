@@ -44,7 +44,7 @@ export function ProductDialog({
   onOpenChange,
   product,
   onSuccess,
-  dict,
+  _dict,
 }: ProductDialogProps) {
   const isEditing = Boolean(product);
   const boundAction = isEditing
