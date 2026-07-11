@@ -50,23 +50,23 @@ export async function createOrder(
     return { error: "Selected product could not be found.", success: false };
   }
 
-  // Definisikan ulang sebagai 'any' sebelum pengecekan
-const currentProduct = product as any;
+  // Bypass TypeScript "never" error untuk Vercel Deployment
+  const currentProduct = product as any;
 
-if (currentProduct.stock < parsed.data.quantity) {
-  return {
-    error: `Not enough stock. Only ${currentProduct.stock} unit(s) available.`,
-    success: false,
+  if (currentProduct.stock < parsed.data.quantity) {
+    return {
+      error: `Not enough stock. Only ${currentProduct.stock} unit(s) available.`,
+      success: false,
+    };
   }
-}
 
-  const totalAmount = Number(product.price) * parsed.data.quantity;
+  const totalAmount = Number(currentProduct.price) * parsed.data.quantity;
 
   const { error: insertError } = await supabase.from("orders").insert({
     user_id: user.id,
     customer_name: parsed.data.customer_name,
-    product_id: product.id,
-    product_name: product.name,
+    product_id: currentProduct.id,
+    product_name: currentProduct.name,
     quantity: parsed.data.quantity,
     total_amount: totalAmount,
     status: "Pending",
@@ -78,8 +78,8 @@ if (currentProduct.stock < parsed.data.quantity) {
 
   const { error: stockError } = await supabase
     .from("products")
-    .update({ stock: product.stock - parsed.data.quantity })
-    .eq("id", product.id)
+    .update({ stock: currentProduct.stock - parsed.data.quantity })
+    .eq("id", currentProduct.id)
     .eq("user_id", user.id);
 
   if (stockError) {
